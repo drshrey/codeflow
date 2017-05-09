@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
+
+	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -87,6 +90,40 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 	if payload.State == plugins.Complete {
 		log.Printf("Route53 plugin received LoadBalancer success message for %s, %s.  Processing.", payload.Service.Name, payload.Name)
 
+		// Wait for DNS from the ELB to settle, abort if it does not resolve in ~15min
+		// Trying to be conservative with these since we don't want to update Route53 before the new ELB dns record is available
+		// Initial wait period 5m
+		time.Sleep(time.Second * 300)
+		// Query the DNS until it resolves up to 10min timeout.
+		dnsTimeout := 600
+		dnsValid := false
+		var failMessage string
+		var dnsLookup []string
+		var dnsLookupErr error
+		for dnsValid == false {
+			dnsLookup, dnsLookupErr = net.LookupHost(payload.DNSName)
+			dnsTimeout -= 30
+			if dnsLookupErr != nil {
+				failMessage = fmt.Sprintf("Error '%s' resolving DNS for: %s", dnsLookupErr, payload.DNSName)
+				fmt.Println(failMessage + ".. Retrying in 30s")
+				time.Sleep(time.Second * 30)
+			} else if len(dnsLookup) == 0 {
+				failMessage = fmt.Sprintf("Error 'found no names associated with ELB record' while resolving DNS for: %s", payload.DNSName)
+				fmt.Println(failMessage + ".. Retrying in 30s")
+				time.Sleep(time.Second * 30)
+			} else {
+				dnsValid = true
+			}
+			if dnsTimeout <= 0 {
+				break
+			}
+		}
+		if dnsValid == false {
+			x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
+			return nil
+		}
+		fmt.Printf("DNS for %s resolved to: %s\n", payload.DNSName, strings.Join(dnsLookup, ","))
+
 		// Create the client
 		sess := session.New()
 		client := route53.New(sess)
@@ -115,9 +152,9 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 			return errList
 		}
 		if foundRecord {
-			log.Printf("Route53 found existing record for: %s", route53Name)
+			log.Printf("Route53 found existing record for: %s\n", route53Name)
 		} else {
-			log.Printf("Route53 record not found, creating %s", route53Name)
+			log.Printf("Route53 record not found, creating %s\n", route53Name)
 		}
 		updateParams := &route53.ChangeResourceRecordSetsInput{
 			HostedZoneId: aws.String(viper.GetString("plugins.route53.hosted_zone_id")),

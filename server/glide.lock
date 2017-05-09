@@ -1,5 +1,5 @@
 hash: eb20b66d893c36dde1bc19d684055dc5504efacb0cbcccd0a5a9d5813e4fa00b
-updated: 2017-05-08T13:22:27.551125509-07:00
+updated: 2017-05-09T09:55:48.20430647-07:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -245,7 +245,7 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/Sirupsen/logrus
-  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
+  version: 10f801ebc38b33738c9d17d50860f484a0988ff5
 - name: github.com/spf13/afero
   version: 9be650865eab0c12963d8753212f4f9c66cdcf12
   subpackages:

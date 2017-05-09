@@ -52,11 +52,9 @@ func (suite *TestRoute53) TestRoute53Update() {
 	}
 	var e agent.Event
 	suite.agent.Events <- testdata.CreateLBHTTPS(plugins.External)
-	e = suite.agent.GetTestEvent("plugins.LoadBalancer:status", 60)
-	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.LoadBalancer).State))
 
 	// Route53 message
-	e = suite.agent.GetTestEvent("plugins.Route53", 60)
+	e = suite.agent.GetTestEvent("plugins.Route53", 900)
 	route53Response := e.Payload.(plugins.Route53)
 	assert.Equal(suite.T(), string(plugins.Complete), string(route53Response.State))
 }

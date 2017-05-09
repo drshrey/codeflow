@@ -3,6 +3,7 @@ package kubedeploy
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -75,7 +76,7 @@ func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
 	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("plugins.kubedeploy.kubeconfig"))
 
 	if err != nil {
-		log.Printf("ERROR: %s; you must set the environment variable KUBECONFIG=/path/to/kubeconfig", err.Error())
+		log.Printf("ERROR: %s; you must set the environment variable CF_PLUGINS_KUBEDEPLOY_KUBECONFIG=/path/to/kubeconfig", err.Error())
 		os.Exit(1)
 	}
 
