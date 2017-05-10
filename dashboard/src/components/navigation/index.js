@@ -74,8 +74,8 @@ class Navigation extends Component {
             <NavItem to="/" onlyActiveOnIndex>Dashboard</NavItem>
 
             <li className="nav-header">Projects</li>
-            <NavItem to="/projects/add">Add new</NavItem>
-            <NavItem to="/projects">Browse</NavItem>
+            <NavItem to="/add">Add new</NavItem>
+            <NavItem to="/browse">Browse</NavItem>
 
             {this.renderBookmarks()}
 

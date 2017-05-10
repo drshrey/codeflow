@@ -2,7 +2,7 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { Form, FormGroup, Input } from 'reactstrap'
 import { Field, FieldArray, reduxForm } from 'redux-form'
-import { isEmpty, get, find } from 'lodash'
+import { isEmpty, find } from 'lodash'
 import ButtonConfirmAction from '../../ButtonConfirmAction'
 import { Tooltip } from 'reactstrap';
 
@@ -154,12 +154,6 @@ class LoadBalancer extends Component {
                   <div className="form-group">
                     <label>Service</label>
                     <Field className="form-control" name="serviceId" services={services} component={renderSelect}/>
-                  </div>
-                </div>
-                <div className="col-xs-6">
-                  <div className="form-group">
-                    <label>DNS (<strong>{get(formValues, 'values.dns')}</strong>.example.com)</label>
-                    <Field name="dns" component={renderInput} type="text" placeholder="codeflow"/>
                   </div>
                 </div>
                 <div className="col-xs-8">
