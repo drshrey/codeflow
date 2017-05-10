@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
-import NavItem from '../components/NavItem'
-import { logoutUser, fetchUsers, fetchBookmarks } from '../actions'
+import NavItem from './Item'
+import { logoutUser, fetchUsers, fetchBookmarks } from '../../actions'
 import { isEmpty } from 'lodash'
 
 const loadData = props => {
