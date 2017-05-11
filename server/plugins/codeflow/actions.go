@@ -204,7 +204,7 @@ func ReleaseCreated(r *Release) error {
 func CheckWorkflows(r *Release) error {
 	var workflowStatus plugins.State = plugins.Complete
 
-	for idx, _ := range r.Workflow {
+	for idx := range r.Workflow {
 		flow := &r.Workflow[idx]
 
 		switch flow.Type {
@@ -715,7 +715,7 @@ func LoadBalancerStatus(lb *plugins.LoadBalancer) error {
 		return err
 	}
 
-	extension.DNSName = lb.DNSName
+	extension.DNS = lb.DNS
 	extension.State = lb.State
 	extension.StateMessage = lb.StateMessage
 

@@ -217,9 +217,9 @@ type LoadBalancer struct {
 	Project       Project        `json:"project"`
 	Service       Service        `json:"service"`
 	ListenerPairs []ListenerPair `json:"portPairs"`
-	DNSName       string         `json:"dnsName"`
+	DNS           string         `json:"dns"`
 	Environment   string         `json:"environment"`
-	Route53DNS    string         `json:"route53DNS"`
+	Subdomain     string         `json:"route53DNS"`
 }
 
 // Route53
@@ -228,9 +228,9 @@ type Route53 struct {
 	StateMessage string  `json:"stateMessage"`
 	Project      Project `json:"project"`
 	Service      Service `json:"service"`
-	DNSName      string  `json:"dnsName"`
+	DNS          string  `json:"dns"`
 	Environment  string  `json:"environment"`
-	Route53DNS   string  `json:"route53DNS"`
+	Subdomain    string  `json:"route53DNS"`
 }
 
 type WebsocketMsg struct {

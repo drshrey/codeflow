@@ -174,10 +174,10 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 		ProjectId: bson.ObjectIdHex("58dbe995df8ab3002a71dc08"),
 		ServiceId: bson.ObjectIdHex("58dbecefdf8ab3002a71dc0e"),
 		Extension: "LoadBalancer",
-		DNSName:   "",
+		DNS:       "",
 		Type:      "office",
 		ListenerPairs: []codeflow.ListenerPair{
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     443,
 					Protocol: "",
@@ -199,10 +199,10 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 		ProjectId: bson.ObjectIdHex("58dbe995df8ab3002a71dc08"),
 		ServiceId: bson.ObjectIdHex("58dbed10df8ab3002a71dc0f"),
 		Extension: "LoadBalancer",
-		DNSName:   "",
+		DNS:       "",
 		Type:      "office",
 		ListenerPairs: []codeflow.ListenerPair{
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     443,
 					Protocol: "",
@@ -224,10 +224,10 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 		ProjectId: bson.ObjectIdHex("58dbe995df8ab3002a71dc08"),
 		ServiceId: bson.ObjectIdHex("58dbecefdf8ab3002a71dc0e"),
 		Extension: "LoadBalancer",
-		DNSName:   "",
+		DNS:       "",
 		Type:      "office",
 		ListenerPairs: []codeflow.ListenerPair{
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     443,
 					Protocol: "",
@@ -249,10 +249,10 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 		ProjectId: bson.ObjectIdHex("58dbe995df8ab3002a71dc08"),
 		ServiceId: bson.ObjectIdHex("58dbee64df8ab3002a71dc12"),
 		Extension: "LoadBalancer",
-		DNSName:   "",
+		DNS:       "",
 		Type:      "office",
 		ListenerPairs: []codeflow.ListenerPair{
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     443,
 					Protocol: "",
@@ -274,10 +274,10 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 		ProjectId: bson.ObjectIdHex("58dbe995df8ab3002a71dc08"),
 		ServiceId: bson.ObjectIdHex("58dbeeaadf8ab3002a71dc14"),
 		Extension: "LoadBalancer",
-		DNSName:   "",
+		DNS:       "",
 		Type:      "office",
 		ListenerPairs: []codeflow.ListenerPair{
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     80,
 					Protocol: "",
@@ -287,7 +287,7 @@ func (r *MongoDbMigrator) V001_init_extensions_up(c *bongo.Connection) error {
 					Protocol: "HTTP",
 				},
 			},
-			codeflow.ListenerPair{
+			{
 				Source: codeflow.Listener{
 					Port:     443,
 					Protocol: "",
@@ -750,11 +750,11 @@ func (r *MongoDbMigrator) V001_init_services_up(c *bongo.Connection) error {
 		Count:        0,
 		Command:      "/go/bin/codeflow --config /etc/codeflow.yml server --run=codeflow,webhooks",
 		Listeners: []codeflow.Listener{
-			codeflow.Listener{
+			{
 				Port:     3001,
 				Protocol: "TCP",
 			},
-			codeflow.Listener{
+			{
 				Port:     3002,
 				Protocol: "TCP",
 			},
@@ -772,7 +772,7 @@ func (r *MongoDbMigrator) V001_init_services_up(c *bongo.Connection) error {
 		Count:        0,
 		Command:      "node dashboard/server.js",
 		Listeners: []codeflow.Listener{
-			codeflow.Listener{
+			{
 				Port:     9000,
 				Protocol: "TCP",
 			},
@@ -816,7 +816,7 @@ func (r *MongoDbMigrator) V001_init_services_up(c *bongo.Connection) error {
 		Count:        0,
 		Command:      "/go/bin/codeflow --config /etc/codeflow.yml server --run=websockets",
 		Listeners: []codeflow.Listener{
-			codeflow.Listener{
+			{
 				Port:     3003,
 				Protocol: "TCP",
 			},
@@ -847,7 +847,7 @@ func (r *MongoDbMigrator) V001_init_services_up(c *bongo.Connection) error {
 		Count:        1,
 		Command:      "npm start --prefix docs/",
 		Listeners: []codeflow.Listener{
-			codeflow.Listener{
+			{
 				Port:     3000,
 				Protocol: "TCP",
 			},

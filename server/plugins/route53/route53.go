@@ -64,8 +64,8 @@ func (x *Route53) sendRoute53Response(e agent.Event, state plugins.State, failur
 		State:        state,
 		StateMessage: failureMessage,
 		Service:      lbPayload.Service,
-		DNSName:      lbPayload.DNSName,
-		Route53DNS:   lbPayload.Route53DNS,
+		DNS:          lbPayload.DNS,
+		Subdomain:    lbPayload.Subdomain,
 		Environment:  lbPayload.Environment,
 		Project:      lbPayload.Project,
 	}, nil)
@@ -75,13 +75,13 @@ func (x *Route53) sendRoute53Response(e agent.Event, state plugins.State, failur
 func (x *Route53) updateRoute53(e agent.Event) error {
 	payload := e.Payload.(plugins.LoadBalancer)
 	// Sanity checks
-	if payload.DNSName == "" {
-		failMessage := fmt.Sprintf("DNSName was blank for %s, skipping Route53.", payload.Project.Slug)
+	if payload.DNS == "" {
+		failMessage := fmt.Sprintf("DNS was blank for %s, skipping Route53.", payload.Project.Slug)
 		x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
 		return nil
 	}
-	if payload.Route53DNS == "" {
-		failMessage := fmt.Sprintf("Route53DNS was blank for %s, skipping Route53.", payload.Project.Slug)
+	if payload.Subdomain == "" {
+		failMessage := fmt.Sprintf("Subdomain was blank for %s, skipping Route53.", payload.Project.Slug)
 		x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
 		return nil
 	}
@@ -101,14 +101,14 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 		var dnsLookup []string
 		var dnsLookupErr error
 		for dnsValid == false {
-			dnsLookup, dnsLookupErr = net.LookupHost(payload.DNSName)
+			dnsLookup, dnsLookupErr = net.LookupHost(payload.DNS)
 			dnsTimeout -= 30
 			if dnsLookupErr != nil {
-				failMessage = fmt.Sprintf("Error '%s' resolving DNS for: %s", dnsLookupErr, payload.DNSName)
+				failMessage = fmt.Sprintf("Error '%s' resolving DNS for: %s", dnsLookupErr, payload.DNS)
 				fmt.Println(failMessage + ".. Retrying in 30s")
 				time.Sleep(time.Second * 30)
 			} else if len(dnsLookup) == 0 {
-				failMessage = fmt.Sprintf("Error 'found no names associated with ELB record' while resolving DNS for: %s", payload.DNSName)
+				failMessage = fmt.Sprintf("Error 'found no names associated with ELB record' while resolving DNS for: %s", payload.DNS)
 				fmt.Println(failMessage + ".. Retrying in 30s")
 				time.Sleep(time.Second * 30)
 			} else {
@@ -122,7 +122,7 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 			x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
 			return nil
 		}
-		fmt.Printf("DNS for %s resolved to: %s\n", payload.DNSName, strings.Join(dnsLookup, ","))
+		fmt.Printf("DNS for %s resolved to: %s\n", payload.DNS, strings.Join(dnsLookup, ","))
 
 		// Create the client
 		sess := session.New()
@@ -168,7 +168,7 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 							Type: aws.String("CNAME"),
 							ResourceRecords: []*route53.ResourceRecord{
 								{
-									Value: aws.String(payload.DNSName),
+									Value: aws.String(payload.DNS),
 								},
 							},
 							TTL: aws.Int64(60),
@@ -183,7 +183,7 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 			x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
 			return nil
 		}
-		log.Printf("Route53 record UPSERTed for %s: %s", route53Name, payload.DNSName)
+		log.Printf("Route53 record UPSERTed for %s: %s", route53Name, payload.DNS)
 		x.sendRoute53Response(e, plugins.Complete, "", payload)
 	}
 

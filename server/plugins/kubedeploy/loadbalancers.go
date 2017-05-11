@@ -3,7 +3,6 @@ package kubedeploy
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -20,13 +19,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (x *KubeDeploy) sendLBResponse(e agent.Event, state plugins.State, failureMessage string, dnsName string, lbpayload plugins.LoadBalancer) {
+func (x *KubeDeploy) sendLBResponse(e agent.Event, state plugins.State, failureMessage string, dns string, lbpayload plugins.LoadBalancer) {
 	payload := e.Payload.(plugins.LoadBalancer)
 	payload.Action = plugins.Status
 	payload.Service = lbpayload.Service
 	payload.StateMessage = failureMessage
-	payload.DNSName = dnsName
-	payload.Route53DNS = lbpayload.Route53DNS
+	payload.DNS = dns
+	payload.Subdomain = lbpayload.Subdomain
 	payload.State = state
 	event := e.NewEvent(payload, nil)
 	x.events <- event
@@ -77,7 +76,7 @@ func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
 
 	if err != nil {
 		log.Printf("ERROR: %s; you must set the environment variable CF_PLUGINS_KUBEDEPLOY_KUBECONFIG=/path/to/kubeconfig", err.Error())
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
@@ -211,7 +210,7 @@ func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
 	}
 
 	// If ELB grab the DNS name for the response
-	var ELBDNSName string
+	var ELBDNS string
 	if payload.Type == plugins.External || payload.Type == plugins.Office {
 		log.Printf("Waiting for ELB address for %s", payload.Name)
 		// Timeout waiting for ELB DNS name after 600 seconds
@@ -223,7 +222,7 @@ func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
 			} else {
 				ingressList := elbResult.Status.LoadBalancer.Ingress
 				if len(ingressList) > 0 {
-					ELBDNSName = ingressList[0].Hostname
+					ELBDNS = ingressList[0].Hostname
 					break
 				}
 				if timeout <= 0 {
@@ -236,9 +235,9 @@ func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
 			timeout -= 5
 		}
 	} else {
-		ELBDNSName = fmt.Sprintf("%s.%s", payload.Name, genNamespaceName(payload.Environment, payload.Project.Slug))
+		ELBDNS = fmt.Sprintf("%s.%s", payload.Name, genNamespaceName(payload.Environment, payload.Project.Slug))
 	}
-	x.sendLBResponse(e, plugins.Complete, "", ELBDNSName, payload)
+	x.sendLBResponse(e, plugins.Complete, "", ELBDNS, payload)
 
 	return nil
 }

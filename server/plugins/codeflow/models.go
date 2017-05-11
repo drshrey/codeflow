@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/checkr/codeflow/server/plugins"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/extemporalgenome/slug"
 	"github.com/maxwellhealth/bongo"
 	"github.com/spf13/viper"
@@ -210,11 +211,23 @@ type LoadBalancer struct {
 	ProjectId          bson.ObjectId  `bson:"projectId" json:"projectId"`
 	ServiceId          bson.ObjectId  `bson:"serviceId" json:"serviceId"`
 	Extension          string         `bson:"extension" json:"extension"`
-	DNSName            string         `bson:"dnsName" json:"dnsName"`
+	DNS                string         `bson:"dns" json:"dns"`
+	Subdomain          string         `bson:"subdomain" json:"subdomain"`
 	Type               string         `bson:"type" json:"type"`
 	ListenerPairs      []ListenerPair `bson:"listenerPairs" json:"listenerPairs"`
 	State              plugins.State  `bson:"state" json:"state"`
 	StateMessage       string         `bson:"stateMessage" json:"stateMessage"`
+}
+
+func (lb *LoadBalancer) Validate(collection *bongo.Collection) []error {
+	var err []error
+	var _err error
+	loadBalancer := LoadBalancer{}
+	if _err := collection.FindOne(bson.M{"_id": bson.M{"$ne": lb.Id}, "subdomain": lb.Subdomain, "state": bson.M{"$in": []plugins.State{plugins.Complete}}}, &loadBalancer); _err == nil {
+		err = append(err, errors.New("Subdomain is already in use"))
+	}
+	spew.Dump(_err)
+	return err
 }
 
 type Feature struct {
