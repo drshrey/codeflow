@@ -9,7 +9,8 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	awssession "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/checkr/codeflow/server/agent"
 	"github.com/checkr/codeflow/server/plugins"
@@ -85,10 +86,13 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 		x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
 		return nil
 	}
-	names := strings.Split(payload.Project.Repository, "/")
-	route53Name := fmt.Sprintf("%s.%s", names[1], viper.GetString("plugins.route53.hosted_zone_name"))
+	if payload.Type == plugins.Internal {
+		fmt.Printf("Internal service type ignored for %s", payload.DNS)
+		return nil
+	}
+	route53Name := fmt.Sprintf("%s.%s", payload.Subdomain, viper.GetString("plugins.route53.hosted_zone_name"))
 	if payload.State == plugins.Complete {
-		log.Printf("Route53 plugin received LoadBalancer success message for %s, %s.  Processing.", payload.Service.Name, payload.Name)
+		log.Printf("Route53 plugin received LoadBalancer success message for %s, %s, %s.  Processing.\n", payload.Project.Slug, payload.DNS, payload.Name)
 
 		// Wait for DNS from the ELB to settle, abort if it does not resolve in ~15min
 		// Trying to be conservative with these since we don't want to update Route53 before the new ELB dns record is available
@@ -125,7 +129,14 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 		fmt.Printf("DNS for %s resolved to: %s\n", payload.DNS, strings.Join(dnsLookup, ","))
 
 		// Create the client
-		sess := session.New()
+		sess := awssession.Must(awssession.NewSessionWithOptions(
+			awssession.Options{
+				Config: aws.Config{
+					Credentials: credentials.NewStaticCredentials(viper.GetString("plugins.route53.aws_access_key_id"), viper.GetString("plugins.route53.aws_secret_key"), ""),
+				},
+			},
+		))
+
 		client := route53.New(sess)
 		// Look for this dns name
 		params := &route53.ListResourceRecordSetsInput{

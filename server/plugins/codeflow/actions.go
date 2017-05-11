@@ -372,6 +372,8 @@ func loadBalancer(lb *LoadBalancer, action plugins.Action) error {
 		},
 		ListenerPairs: listenerPairs,
 		Environment:   "development",
+		DNS:           lb.DNS,
+		Subdomain:     lb.Subdomain,
 	}
 
 	cf.Events <- agent.NewEvent(loadBalancerEvent, nil)
