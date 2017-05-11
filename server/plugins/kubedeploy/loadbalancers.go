@@ -71,20 +71,25 @@ func (x *KubeDeploy) doDeleteLoadBalancer(e agent.Event) error {
 
 // Make changes to kubernetes services (aka load balancers)
 func (x *KubeDeploy) doLoadBalancer(e agent.Event) error {
+	payload := e.Payload.(plugins.LoadBalancer)
 	// Codeflow will load the kube config from a file, specified by CF_PLUGINS_KUBEDEPLOY_KUBECONFIG environment variable
 	config, err := clientcmd.BuildConfigFromFlags("", viper.GetString("plugins.kubedeploy.kubeconfig"))
 
 	if err != nil {
-		log.Printf("ERROR: %s; you must set the environment variable CF_PLUGINS_KUBEDEPLOY_KUBECONFIG=/path/to/kubeconfig", err.Error())
-		//os.Exit(1)
+		failMessage := fmt.Sprintf("ERROR: %s; you must set the environment variable CF_PLUGINS_KUBEDEPLOY_KUBECONFIG=/path/to/kubeconfig", err.Error())
+		log.Println(failMessage)
+		x.sendLBResponse(e, plugins.Failed, failMessage, "", payload)
+		return nil
 	}
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Println("Error getting cluster config.")
+		failMessage := fmt.Sprintf("ERROR: %s; setting NewForConfig in doLoadBalancer", err.Error())
+		log.Println(failMessage)
+		x.sendLBResponse(e, plugins.Failed, failMessage, "", payload)
+		return nil
 	}
 
-	payload := e.Payload.(plugins.LoadBalancer)
 	coreInterface := clientset.Core()
 	deploymentName := genDeploymentName(payload.Project.Slug, payload.Service.Name)
 
