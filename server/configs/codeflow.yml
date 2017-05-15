@@ -86,5 +86,7 @@ plugins:
     workers: 0
   route53:
     workers: 1
+    initial_wait_seconds: 300
+    dns_resolve_timeout_seconds: 600
     hosted_zone_id: ""
     hosted_zone_name: ""

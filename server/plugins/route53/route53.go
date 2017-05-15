@@ -94,33 +94,31 @@ func (x *Route53) updateRoute53(e agent.Event) error {
 	if payload.State == plugins.Complete {
 		log.Printf("Route53 plugin received LoadBalancer success message for %s, %s, %s.  Processing.\n", payload.Project.Slug, payload.DNS, payload.Name)
 
-		// Wait for DNS from the ELB to settle, abort if it does not resolve in ~15min
+		// Wait for DNS from the ELB to settle, abort if it does not resolve in initial_wait
 		// Trying to be conservative with these since we don't want to update Route53 before the new ELB dns record is available
-		// Initial wait period 5m
-		time.Sleep(time.Second * 300)
-		// Query the DNS until it resolves up to 10min timeout.
-		dnsTimeout := 600
+		time.Sleep(time.Second * viper.GetDuration("plugins.route53.initial_wait"))
+
+		// Query the DNS until it resolves or timeouts
+		dnsTimeout := viper.GetInt("plugins.route53.dns_resolve_timeout_seconds")
 		dnsValid := false
 		var failMessage string
 		var dnsLookup []string
 		var dnsLookupErr error
 		for dnsValid == false {
 			dnsLookup, dnsLookupErr = net.LookupHost(payload.DNS)
-			dnsTimeout -= 30
+			dnsTimeout -= 10
 			if dnsLookupErr != nil {
 				failMessage = fmt.Sprintf("Error '%s' resolving DNS for: %s", dnsLookupErr, payload.DNS)
-				fmt.Println(failMessage + ".. Retrying in 30s")
-				time.Sleep(time.Second * 30)
 			} else if len(dnsLookup) == 0 {
 				failMessage = fmt.Sprintf("Error 'found no names associated with ELB record' while resolving DNS for: %s", payload.DNS)
-				fmt.Println(failMessage + ".. Retrying in 30s")
-				time.Sleep(time.Second * 30)
 			} else {
 				dnsValid = true
 			}
-			if dnsTimeout <= 0 {
+			if dnsTimeout <= 0 || dnsValid {
 				break
 			}
+			time.Sleep(time.Second * 10)
+			fmt.Println(failMessage + ".. Retrying in 10s")
 		}
 		if dnsValid == false {
 			x.sendRoute53Response(e, plugins.Failed, failMessage, payload)
