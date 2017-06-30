@@ -59,6 +59,10 @@ class AddProject extends Component {
         </FormGroup>
         {this.renderGitUrl()}
         <FormGroup>
+          <Label for="gitBranch">Default branch</Label>
+          <Field name="gitBranch" component={this.renderInput} type="text" placeholder="master" />
+        </FormGroup>
+        <FormGroup>
           <Label>
             <Field name="bookmarked" component={this.renderCheckbox} type="checkbox"/> Add to my bookmarks
           </Label>
@@ -77,6 +81,6 @@ const AddProjectForm = reduxForm({
 export default connect(
   state => {
     const formValues = state.form.addProject
-    return { formValues: formValues, initialValues: {gitProtocol: "SSH", bookmarked: true} }
+    return { formValues: formValues, initialValues: {gitProtocol: "SSH", bookmarked: true, gitBranch: "master"} }
   }
 )(AddProjectForm)

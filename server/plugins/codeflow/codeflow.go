@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -285,11 +286,6 @@ func (x *Codeflow) Process(e agent.Event) error {
 		project := Project{}
 		feature := Feature{}
 
-		// Only build master branch
-		if payload.Ref != "refs/heads/master" {
-			return nil
-		}
-
 		if err := db.Collection("projects").FindOne(bson.M{"repository": payload.Repository}, &project); err != nil {
 			if _, ok := err.(*bongo.DocumentNotFoundError); ok {
 				log.Printf("Projects::FindOne::DocumentNotFoundError: repository: `%v`", payload.Repository)
@@ -297,6 +293,19 @@ func (x *Codeflow) Process(e agent.Event) error {
 				log.Printf("Projects::FindOne::Error: %s", err.Error())
 			}
 			return err
+		}
+
+		// Only build project branch
+		branch := project.GitBranch
+
+		if len(strings.TrimSpace(branch)) == 0 {
+			branch = "master"
+		}
+
+		ref := fmt.Sprint("refs/heads/", branch)
+
+		if payload.Ref != ref {
+			return nil
 		}
 
 		if !project.Pinged {

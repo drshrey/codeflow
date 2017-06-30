@@ -996,7 +996,7 @@ func DockerBuildRebuild(r *Release) error {
 		Git: plugins.Git{
 			Url:           project.GitUrl,
 			Protocol:      project.GitProtocol,
-			Branch:        "master",
+			Branch:        viper.GetString("plugins.codeflow.default_branch"),
 			Workdir:       viper.GetString("plugins.docker_build.workdir"),
 			RsaPrivateKey: project.RsaPrivateKey,
 			RsaPublicKey:  project.RsaPublicKey,

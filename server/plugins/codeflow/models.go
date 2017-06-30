@@ -33,6 +33,7 @@ type Project struct {
 	Pinged                bool     `bson:"pinged" json:"pinged"`
 	GitUrl                string   `bson:"gitUrl" json:"gitUrl" validate:"required"`
 	GitProtocol           string   `bson:"gitProtocol" json:"gitProtocol" validate:"required"`
+	GitBranch             string   `bson:"gitBranch" json:"gitBranch"`
 	RsaPrivateKey         string   `bson:"rsaPrivateKey" json:"-"`
 	RsaPublicKey          string   `bson:"rsaPublicKey" json:"rsaPublicKey"`
 	Bokmarked             bool     `bson:"-" json:"bookmarked"`
