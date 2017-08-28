@@ -1,5 +1,5 @@
-hash: 1f3a531c94d5cbe1e57fa77c1540771c4ed4e07748ba505fd6f6cdf9c2520bfe
-updated: 2017-05-11T10:05:39.930751702-07:00
+hash: 547eab3be62b9d81ec26928ed8b2c3de61998a625304dd006fde9c2e29c45098
+updated: 2017-08-28T15:02:33.648354907-07:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -68,7 +68,7 @@ imports:
   - httputil
   - timeutil
 - name: github.com/davecgh/go-spew
-  version: 346938d642f2ec3594ed81d874461961cd0faa76
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
 - name: github.com/dgrijalva/jwt-go
@@ -201,7 +201,7 @@ imports:
   - jwa
   - jwk
 - name: github.com/libgit2/git2go
-  version: 334260d743d713a55ff3c097ec6707f2bb39e9d5
+  version: e0c6962c02edc787dce75b075fd7981a5fd4c8b6
 - name: github.com/magiconair/properties
   version: 51463bfca2576e06c62a8504b5c0f06d61312647
 - name: github.com/mailru/easyjson
@@ -273,7 +273,7 @@ imports:
   subpackages:
   - codec
 - name: golang.org/x/crypto
-  version: 122d919ec1efcfb58483215da23f815853e24b81
+  version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
   - curve25519
   - ed25519
@@ -339,7 +339,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 - name: k8s.io/client-go
-  version: fc49675c2251223623d1a03df9faf0a204ba4752
+  version: 668d7ca6dcbe8882483c3377d7e52f2d7dab18a3
   subpackages:
   - discovery
   - kubernetes
