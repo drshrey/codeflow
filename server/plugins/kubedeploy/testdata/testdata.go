@@ -162,6 +162,12 @@ func TeardownPreviousDeploy(name string) agent.Event {
 	return event
 }
 
+func CreateSuccessJob() agent.Event {
+	job := JobData("hello-world-success", plugins.Create)
+	event := agent.NewEvent(job, nil)
+	return event
+}
+
 func CreateSuccessDeploy() agent.Event {
 	deploy := DeployData("nginx-test-success", plugins.Create)
 	event := agent.NewEvent(deploy, nil)
@@ -375,6 +381,80 @@ func DeployDataRenamed(name string, action plugins.Action) plugins.DockerDeploy 
 	return kubeDeploy
 }
 
+func JobData(name string, action plugins.Action) plugins.DockerDeploy {
+	project := plugins.Project{
+		Slug: name,
+	}
+
+	headFeature := plugins.Feature{
+		Message:    "jobtest1",
+		User:       "shreyas@checkr.com",
+		Hash:       "112",
+		ParentHash: "112",
+	}
+
+	tailFeature := plugins.Feature{
+		Message:    "jobtest2",
+		User:       "shreyas@checkr.com",
+		Hash:       "456",
+		ParentHash: "456",
+	}
+
+	release := plugins.Release{
+		HeadFeature: headFeature,
+		TailFeature: tailFeature,
+	}
+
+	listener := plugins.Listener{
+		Port:     80,
+		Protocol: "TCP",
+	}
+
+	var serviceArray []plugins.Service
+
+	for i := 0; i < 2; i++ {
+		serviceArray = append(serviceArray, plugins.Service{
+			Action:    action,
+			Name:      fmt.Sprintf("helloworld-job%d", i),
+			Command:   "perl -Mbignum=bpi -wle print bpi(2000)]",
+			Listeners: []plugins.Listener{listener},
+			State:     plugins.Waiting,
+			Spec: plugins.ServiceSpec{
+				CpuRequest:                    "10m",
+				CpuLimit:                      "500m",
+				MemoryRequest:                 "1Mi",
+				MemoryLimit:                   "500Mi",
+				TerminationGracePeriodSeconds: int64(600),
+			},
+			Replicas: 1,
+			OneShot:  true,
+		})
+	}
+
+	docker := plugins.Docker{
+		Image: "checkr/deploy-test:latest",
+	}
+
+	kubeDeploy := plugins.DockerDeploy{
+		Action:      action,
+		Docker:      docker,
+		Environment: "testing2",
+		Project:     project,
+		Timeout:     60,
+		Release:     release,
+		Services:    serviceArray,
+		Secrets: []plugins.Secret{
+			{
+				Key:   "MY_SECRET_KEY",
+				Value: "MY_SECRET_VALUE",
+				Type:  plugins.Env,
+			},
+		},
+	}
+
+	return kubeDeploy
+}
+
 func DeployData(name string, action plugins.Action) plugins.DockerDeploy {
 	project := plugins.Project{
 		Slug: name,
@@ -429,7 +509,7 @@ func DeployData(name string, action plugins.Action) plugins.DockerDeploy {
 	serviceArray = append(serviceArray, plugins.Service{
 		Action:  action,
 		Name:    "worker",
-		Command: "/bin/sh -c 'while(/bin/true); do sleep 1; echo shreyas wuz here...; done'",
+		Command: "/bin/sh -c 'while(/bin/true); do sleep 1; echo waiting forever; done'",
 		State:   plugins.Waiting,
 		Spec: plugins.ServiceSpec{
 
