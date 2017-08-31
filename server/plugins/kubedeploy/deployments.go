@@ -22,7 +22,6 @@ import (
 
 	"github.com/checkr/codeflow/server/agent"
 	"github.com/checkr/codeflow/server/plugins"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/extemporalgenome/slug"
 	"github.com/google/shlex"
 	"github.com/spf13/viper"
@@ -489,8 +488,6 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 				log.Printf("Existing job not found for %s. requested action: %s.", deploymentName, service.Action)
 				// Sanity check that we were told to create this service or error out.
 
-				log.Printf("CREATING JOB!")
-				spew.Dump(jobParams)
 				_, myError = batchv1DepInterface.Jobs(namespace).Create(jobParams)
 
 				if myError != nil {
@@ -503,8 +500,6 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 				}
 			} else {
 				// Deployment exists, update job with new configuration
-				spew.Dump("UPDATING JOB!")
-				spew.Dump(jobParams)
 				_, myError = batchv1DepInterface.Jobs(namespace).Update(jobParams)
 
 				if myError != nil {

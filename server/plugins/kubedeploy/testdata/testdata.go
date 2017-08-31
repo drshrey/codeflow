@@ -416,7 +416,7 @@ func JobData(name string, action plugins.Action) plugins.DockerDeploy {
 		serviceArray = append(serviceArray, plugins.Service{
 			Action:    action,
 			Name:      fmt.Sprintf("helloworld-job%d", i),
-			Command:   "perl -Mbignum=bpi -wle print bpi(2000)]",
+			Command:   "echo hello, world!",
 			Listeners: []plugins.Listener{listener},
 			State:     plugins.Waiting,
 			Spec: plugins.ServiceSpec{
