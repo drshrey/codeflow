@@ -422,13 +422,14 @@ func DeployData(name string, action plugins.Action) plugins.DockerDeploy {
 				TerminationGracePeriodSeconds: int64(600),
 			},
 			Replicas: 1,
+			OneShot:  true,
 		})
 	}
 	// One worker
 	serviceArray = append(serviceArray, plugins.Service{
 		Action:  action,
 		Name:    "worker",
-		Command: "/bin/sh -c 'while(/bin/true); do sleep 1; echo waiting forever...; done'",
+		Command: "/bin/sh -c 'while(/bin/true); do sleep 1; echo shreyas wuz here...; done'",
 		State:   plugins.Waiting,
 		Spec: plugins.ServiceSpec{
 
@@ -439,6 +440,7 @@ func DeployData(name string, action plugins.Action) plugins.DockerDeploy {
 			TerminationGracePeriodSeconds: int64(600),
 		},
 		Replicas: 1,
+		OneShot:  true,
 	})
 
 	docker := plugins.Docker{
@@ -529,6 +531,7 @@ func DeployDataFail(name string, action plugins.Action) plugins.DockerDeploy {
 			TerminationGracePeriodSeconds: int64(600),
 		},
 		Replicas: 1,
+		OneShot:  true,
 	})
 
 	docker := plugins.Docker{

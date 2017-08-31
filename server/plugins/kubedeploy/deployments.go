@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/pkg/api/resource"
 	"k8s.io/client-go/pkg/api/unversioned"
 	"k8s.io/client-go/pkg/api/v1"
+	apis_batch_v1 "k8s.io/client-go/pkg/apis/batch/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	"k8s.io/client-go/pkg/util"
 	"k8s.io/client-go/pkg/util/intstr"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/checkr/codeflow/server/agent"
 	"github.com/checkr/codeflow/server/plugins"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/extemporalgenome/slug"
 	"github.com/google/shlex"
 	"github.com/spf13/viper"
@@ -139,7 +141,7 @@ func (x *KubeDeploy) createNamespaceIfNotExists(namespace string, coreInterface 
 
 func (x *KubeDeploy) doDeploy(e agent.Event) error {
 	// Codeflow will load the kube config from a file, specified by CF_PLUGINS_KUBEDEPLOY_KUBECONFIG environment variable
-	kubeconfig := viper.GetString("plugins.kubedeploy.kubeconfig")
+	kubeconfig := "/Users/shreyas/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 
 	if err != nil {
@@ -262,6 +264,7 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 
 	// Do update/create of deployments and services
 	depInterface := clientset.Extensions()
+	batchv1DepInterface := clientset.BatchV1()
 
 	// Validate we have some services to deploy
 	if len(data.Services) == 0 {
@@ -391,90 +394,159 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 		var revisionHistoryLimit int32 = 10
 		terminationGracePeriodSeconds := service.Spec.TerminationGracePeriodSeconds
 
-		deployParams := &v1beta1.Deployment{
-			TypeMeta: unversioned.TypeMeta{
-				Kind:       "Deployment",
-				APIVersion: "extensions/v1beta1",
-			},
+		podTemplateSpec := v1.PodTemplateSpec{
 			ObjectMeta: v1.ObjectMeta{
-				Name: deploymentName,
+				Name:   deploymentName,
+				Labels: map[string]string{"app": deploymentName},
 			},
-			Spec: v1beta1.DeploymentSpec{
-				ProgressDeadlineSeconds: util.Int32Ptr(300),
-				Replicas:                &replicas,
-				Strategy:                deployStrategy,
-				RevisionHistoryLimit:    &revisionHistoryLimit,
-				Template: v1.PodTemplateSpec{
-					ObjectMeta: v1.ObjectMeta{
-						Name:   deploymentName,
-						Labels: map[string]string{"app": deploymentName},
-					},
-					Spec: v1.PodSpec{
-						NodeSelector:                  nodeSelector,
-						TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
-						ImagePullSecrets: []v1.LocalObjectReference{
-							{
-								Name: "docker-io",
-							},
-						},
-						Containers: []v1.Container{
-							{
-								Name:  service.Name,
-								Image: data.Docker.Image,
-								Ports: deployPorts,
-								Args:  commandArray,
-								Resources: v1.ResourceRequirements{
-									Limits: v1.ResourceList{
-										v1.ResourceCPU:    resource.MustParse(service.Spec.CpuLimit),
-										v1.ResourceMemory: resource.MustParse(service.Spec.MemoryLimit),
-									},
-									Requests: v1.ResourceList{
-										v1.ResourceCPU:    resource.MustParse(service.Spec.CpuRequest),
-										v1.ResourceMemory: resource.MustParse(service.Spec.MemoryRequest),
-									},
-								},
-								ImagePullPolicy: v1.PullIfNotPresent,
-								Env:             myEnvVars,
-								ReadinessProbe:  &readyProbe,
-								LivenessProbe:   &liveProbe,
-								VolumeMounts:    volumeMounts,
-							},
-						},
-						Volumes:       deployVolumes,
-						RestartPolicy: v1.RestartPolicyAlways,
-						DNSPolicy:     v1.DNSClusterFirst,
+			Spec: v1.PodSpec{
+				NodeSelector:                  nodeSelector,
+				TerminationGracePeriodSeconds: &terminationGracePeriodSeconds,
+				ImagePullSecrets: []v1.LocalObjectReference{
+					{
+						Name: "docker-io",
 					},
 				},
+				Containers: []v1.Container{
+					{
+						Name:  service.Name,
+						Image: data.Docker.Image,
+						Ports: deployPorts,
+						Args:  commandArray,
+						Resources: v1.ResourceRequirements{
+							Limits: v1.ResourceList{
+								v1.ResourceCPU:    resource.MustParse(service.Spec.CpuLimit),
+								v1.ResourceMemory: resource.MustParse(service.Spec.MemoryLimit),
+							},
+							Requests: v1.ResourceList{
+								v1.ResourceCPU:    resource.MustParse(service.Spec.CpuRequest),
+								v1.ResourceMemory: resource.MustParse(service.Spec.MemoryRequest),
+							},
+						},
+						ImagePullPolicy: v1.PullIfNotPresent,
+						Env:             myEnvVars,
+						ReadinessProbe:  &readyProbe,
+						LivenessProbe:   &liveProbe,
+						VolumeMounts:    volumeMounts,
+					},
+				},
+				Volumes:       deployVolumes,
+				RestartPolicy: v1.RestartPolicyAlways,
+				DNSPolicy:     v1.DNSClusterFirst,
 			},
 		}
 
-		log.Printf("Getting list of deployments matching %s", deploymentName)
-		_, err := depInterface.Deployments(namespace).Get(deploymentName)
-		var myError error
-		if err != nil {
-			// Create deployment if it does not exist
-			log.Printf("Existing deployment not found for %s. requested action: %s.", deploymentName, service.Action)
-			// Sanity check that we were told to create this service or error out.
-			_, myError = depInterface.Deployments(namespace).Create(deployParams)
-			if myError != nil {
-				// send failed status
-				log.Printf("Failed to create service deployment %s, with error: %s", deploymentName, myError)
-				data.Services[index].State = plugins.Failed
-				data.Services[index].StateMessage = fmt.Sprintf("Error creating deployment: %s", myError)
-				// shorten the timeout in this case so that we can fail without waiting
-				curTime = timeout
+		var deployParams *v1beta1.Deployment
+		var jobParams *apis_batch_v1.Job
+
+		if service.OneShot == true {
+			numParallelPods := int32(1)
+			numCompletionsToTerminate := int32(1)
+
+			podTemplateSpec.Spec.RestartPolicy = v1.RestartPolicyNever
+
+			jobParams = &apis_batch_v1.Job{
+				TypeMeta: unversioned.TypeMeta{
+					Kind:       "Job",
+					APIVersion: "batch/v1",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Name: deploymentName,
+				},
+				Spec: apis_batch_v1.JobSpec{
+					Parallelism: &numParallelPods,
+					Completions: &numCompletionsToTerminate,
+					Template:    podTemplateSpec,
+				},
 			}
 		} else {
-			// Deployment exists, update deployment with new configuration
-			_, myError = depInterface.Deployments(namespace).Update(deployParams)
-			if myError != nil {
-				log.Printf("Failed to update service deployment %s, with error: %s", deploymentName, myError)
-				data.Services[index].State = plugins.Failed
-				data.Services[index].StateMessage = fmt.Sprintf("Failed to update deployment %s, with error: %s", deploymentName, myError)
-				// shorten the timeout in this case so that we can fail without waiting
-				curTime = timeout
+			deployParams = &v1beta1.Deployment{
+				TypeMeta: unversioned.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "extensions/v1beta1",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Name: deploymentName,
+				},
+				Spec: v1beta1.DeploymentSpec{
+					ProgressDeadlineSeconds: util.Int32Ptr(300),
+					Replicas:                &replicas,
+					Strategy:                deployStrategy,
+					RevisionHistoryLimit:    &revisionHistoryLimit,
+					Template:                podTemplateSpec,
+				},
 			}
 		}
+
+		var err error
+		log.Printf("Getting list of deployments matching %s", deploymentName)
+		if service.OneShot == true {
+
+			_, err = depInterface.Jobs(namespace).Get(deploymentName)
+			var myError error
+			if err != nil {
+				// Create deployment if it does not exist
+				log.Printf("Existing job not found for %s. requested action: %s.", deploymentName, service.Action)
+				// Sanity check that we were told to create this service or error out.
+
+				log.Printf("CREATING JOB!")
+				spew.Dump(jobParams)
+				_, myError = batchv1DepInterface.Jobs(namespace).Create(jobParams)
+
+				if myError != nil {
+					// send failed status
+					log.Printf("Failed to create service job %s, with error: %s", deploymentName, myError)
+					data.Services[index].State = plugins.Failed
+					data.Services[index].StateMessage = fmt.Sprintf("Error creating deployment: %s", myError)
+					// shorten the timeout in this case so that we can fail without waiting
+					curTime = timeout
+				}
+			} else {
+				// Deployment exists, update deployment with new configuration
+				spew.Dump("UPDATING JOB!")
+				spew.Dump(jobParams)
+				_, myError = batchv1DepInterface.Jobs(namespace).Update(jobParams)
+
+				if myError != nil {
+					log.Printf("Failed to update service job %s, with error: %s", deploymentName, myError)
+					data.Services[index].State = plugins.Failed
+					data.Services[index].StateMessage = fmt.Sprintf("Failed to update job %s, with error: %s", deploymentName, myError)
+					// shorten the timeout in this case so that we can fail without waiting
+					curTime = timeout
+				}
+			}
+		} else {
+			_, err = depInterface.Deployments(namespace).Get(deploymentName)
+			var myError error
+			if err != nil {
+				// Create deployment if it does not exist
+				log.Printf("Existing deployment not found for %s. requested action: %s.", deploymentName, service.Action)
+				// Sanity check that we were told to create this service or error out.
+
+				_, myError = depInterface.Deployments(namespace).Create(deployParams)
+
+				if myError != nil {
+					// send failed status
+					log.Printf("Failed to create service deployment %s, with error: %s", deploymentName, myError)
+					data.Services[index].State = plugins.Failed
+					data.Services[index].StateMessage = fmt.Sprintf("Error creating deployment: %s", myError)
+					// shorten the timeout in this case so that we can fail without waiting
+					curTime = timeout
+				}
+			} else {
+				// Deployment exists, update deployment with new configuration
+				_, myError = depInterface.Deployments(namespace).Update(deployParams)
+
+				if myError != nil {
+					log.Printf("Failed to update service deployment %s, with error: %s", deploymentName, myError)
+					data.Services[index].State = plugins.Failed
+					data.Services[index].StateMessage = fmt.Sprintf("Failed to update deployment %s, with error: %s", deploymentName, myError)
+					// shorten the timeout in this case so that we can fail without waiting
+					curTime = timeout
+				}
+			}
+		}
+
 	} // All service deployments initiated.
 
 	log.Printf("Waiting %d seconds for deployment to succeed.", timeout)

@@ -1,11 +1,13 @@
 package kubedeploy_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/checkr/codeflow/server/agent"
 	"github.com/checkr/codeflow/server/plugins"
 	"github.com/checkr/codeflow/server/plugins/kubedeploy/testdata"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -45,6 +47,20 @@ func (suite *TestDeployments) TestSuccessfulDeployment() {
 	}
 }
 
+func (suite *TestDeployments) TestSuccessfulJob() {
+	var e agent.Event
+
+	suite.agent.Events <- testdata.CreateSuccessJob()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	spew.Dump(e.Payload)
+	log.Println("GOING THROUGH SERVICES")
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		spew.Dump(service)
+		assert.Equal(suite.T(), true, service.OneShot)
+		assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
+	}
+}
+
 func (suite *TestDeployments) TestFailedDeploymentImagePull() {
 	var e agent.Event
 
@@ -69,6 +85,11 @@ func (suite *TestDeployments) TestFailedDeploymentCommand() {
 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
 	assert.Equal(suite.T(), string(plugins.Failed), string(e.Payload.(plugins.DockerDeploy).State))
 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		// Check if service is one shot
+		if service.OneShot == true {
+			spew.Dump(service)
+			assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
+		}
 		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
 	}
 }
