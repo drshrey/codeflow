@@ -479,7 +479,7 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 		}
 
 		var err error
-		log.Printf("Getting list of deployments matching %s", deploymentName)
+		log.Printf("Getting list of deployments/ jobs matching %s", deploymentName)
 		if service.OneShot == true {
 
 			_, err = depInterface.Jobs(namespace).Get(deploymentName)
@@ -502,7 +502,7 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 					curTime = timeout
 				}
 			} else {
-				// Deployment exists, update deployment with new configuration
+				// Deployment exists, update job with new configuration
 				spew.Dump("UPDATING JOB!")
 				spew.Dump(jobParams)
 				_, myError = batchv1DepInterface.Jobs(namespace).Update(jobParams)
