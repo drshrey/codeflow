@@ -1,7 +1,6 @@
 package kubedeploy_test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/checkr/codeflow/server/agent"
@@ -33,86 +32,107 @@ func (suite *TestDeployments) TearDownSuite() {
 	suite.agent.Stop()
 }
 
-// func (suite *TestDeployments) TestSuccessfulDeployment() {
-// 	var e agent.Event
+func (suite *TestDeployments) TestSuccessfulDeployment() {
+	var e agent.Event
 
-// 	suite.agent.Events <- testdata.CreateSuccessDeploy()
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+	suite.agent.Events <- testdata.CreateSuccessDeploy()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
 
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
-// 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
-// 		assert.Equal(suite.T(), string(plugins.Complete), string(service.State))
-// 	}
-// }
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		assert.Equal(suite.T(), string(plugins.Complete), string(service.State))
+	}
+}
 
 func (suite *TestDeployments) TestSuccessfulJob() {
 	var e agent.Event
 
 	suite.agent.Events <- testdata.CreateSuccessJob()
 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-	spew.Dump(e.Payload)
-	log.Println("GOING THROUGH SERVICES")
 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
-		spew.Dump(service)
 		assert.Equal(suite.T(), true, service.OneShot)
-		assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
+		assert.Equal(suite.T(), string(plugins.Complete), string(service.State))
 	}
 }
 
-// func (suite *TestDeployments) TestFailedDeploymentImagePull() {
-// 	var e agent.Event
+func (suite *TestDeployments) TestFailJob() {
+	var e agent.Event
 
-// 	suite.agent.Events <- testdata.CreateFailDeploy()
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+	suite.agent.Events <- testdata.CreateFailJob()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		assert.Equal(suite.T(), true, service.OneShot)
+		assert.Equal(suite.T(), string(plugins.Waiting), string(service.State))
+	}
+}
 
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Failed), string(e.Payload.(plugins.DockerDeploy).State))
-// 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
-// 		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
-// 	}
-// }
+func (suite *TestDeployments) TestExitIfJobAlreadyActive() {
+	var e agent.Event
 
-// func (suite *TestDeployments) TestFailedDeploymentCommand() {
-// 	var e agent.Event
+	suite.agent.Events <- testdata.CreateAlreadyActiveSoFailJob()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
 
-// 	suite.agent.Events <- testdata.CreateFailDeployCommand()
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+	statuses := []string{string(plugins.Waiting), string(plugins.Deleted)}
 
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Failed), string(e.Payload.(plugins.DockerDeploy).State))
-// 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
-// 		// Check if service is one shot
-// 		if service.OneShot == true {
-// 			spew.Dump(service)
-// 			assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
-// 		}
-// 		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
-// 	}
-// }
+	for index, service := range e.Payload.(plugins.DockerDeploy).Services {
+		assert.Equal(suite.T(), string(service.State), statuses[index])
+	}
+}
 
-// func (suite *TestDeployments) TestStragglerDeployment() {
-// 	var e agent.Event
-// 	// Create a successful deploy
-// 	suite.agent.Events <- testdata.CreateSuccessDeploy()
-// 	// Consume the in-progress message
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
-// 	// Consume the success message
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
-// 	// Rename the services and re-deploy
-// 	suite.agent.Events <- testdata.CreateSuccessDeployRenamed()
-// 	// Consume the in-progress message
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
-// 	// Consume the success message
-// 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
-// 	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
-// }
+func (suite *TestDeployments) TestFailedDeploymentImagePull() {
+	var e agent.Event
+
+	suite.agent.Events <- testdata.CreateFailDeploy()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Failed), string(e.Payload.(plugins.DockerDeploy).State))
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
+	}
+}
+
+func (suite *TestDeployments) TestFailedDeploymentCommand() {
+	var e agent.Event
+
+	suite.agent.Events <- testdata.CreateFailDeployCommand()
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Failed), string(e.Payload.(plugins.DockerDeploy).State))
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		// Check if service is one shot
+		if service.OneShot == true {
+			spew.Dump(service)
+			assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
+		}
+		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
+	}
+}
+
+func (suite *TestDeployments) TestStragglerDeployment() {
+	var e agent.Event
+	// Create a successful deploy
+	suite.agent.Events <- testdata.CreateSuccessDeploy()
+	// Consume the in-progress message
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+	// Consume the success message
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
+	// Rename the services and re-deploy
+	suite.agent.Events <- testdata.CreateSuccessDeployRenamed()
+	// Consume the in-progress message
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Running), string(e.Payload.(plugins.DockerDeploy).State))
+	// Consume the success message
+	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
+	assert.Equal(suite.T(), string(plugins.Complete), string(e.Payload.(plugins.DockerDeploy).State))
+}
 
 func TestKubeDeployDeployments(t *testing.T) {
 	suite.Run(t, new(TestDeployments))
