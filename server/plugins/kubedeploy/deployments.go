@@ -205,8 +205,7 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 	secretResult, secErr := coreInterface.Secrets(namespace).Create(secretParams)
 	if secErr != nil {
 		failMessage := fmt.Sprintf("Error '%s' creating secret %s", secErr, data.Project.Slug)
-		data.Services[index].
-			x.sendDDErrorResponse(e, data.Services, failMessage)
+		x.sendDDErrorResponse(e, data.Services, failMessage)
 		return nil
 	}
 	secretName := secretResult.Name
@@ -518,7 +517,7 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 				if existingJob.Status.Active > 0 {
 					data.Services[index].State = plugins.Deleted
 					x.sendDDErrorResponse(e, data.Services, "There is already an active job with this name. You can only deploy once that is finished.")
-					break
+					return nil
 				} else if existingJob.Status.Failed > 0 {
 					// delete existing failed job
 					gracePeriod := int64(0)
@@ -680,10 +679,17 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 					var jobOrphans []apis_batch_v1.Job
 
 					for _, job := range allJobsList.Items {
-						if job.Status.Failed > 0 {
+						foundIt = false
+						for _, service := range data.Services {
+							if job.Name == genDeploymentName(data.Project.Slug, service.Name) {
+								foundIt = true
+							}
+						}
+						if foundIt == false {
 							jobOrphans = append(jobOrphans, job)
 						}
 					}
+
 					// Delete job orphan list
 					for _, deleteThis := range jobOrphans {
 						gracePeriod := int64(0)

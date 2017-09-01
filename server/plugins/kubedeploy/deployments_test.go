@@ -74,7 +74,7 @@ func (suite *TestDeployments) TestExitIfJobAlreadyActive() {
 	suite.agent.Events <- testdata.CreateAlreadyActiveSoFailJob()
 	e = suite.agent.GetTestEvent("plugins.DockerDeploy:status", 120)
 
-	statuses := []string{string(plugins.Waiting), string(plugins.Deleted)}
+	statuses := []string{string(plugins.Deleted), string(plugins.Deleted)}
 
 	for index, service := range e.Payload.(plugins.DockerDeploy).Services {
 		assert.Equal(suite.T(), string(service.State), statuses[index])
