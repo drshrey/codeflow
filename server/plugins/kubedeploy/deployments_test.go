@@ -138,7 +138,7 @@ func (suite *TestDeployments) TestFailedDeploymentCommand() {
 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
 		// Check if service is one shot
 		if service.OneShot == true {
-			assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
+			assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
 		}
 		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
 	}
