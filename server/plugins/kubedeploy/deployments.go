@@ -161,7 +161,7 @@ func getContainerPorts(service plugins.Service) []v1.ContainerPort {
 
 func (x *KubeDeploy) doDeploy(e agent.Event) error {
 	// Codeflow will load the kube config from a file, specified by CF_PLUGINS_KUBEDEPLOY_KUBECONFIG environment variable
-	kubeconfig := "/Users/shreyas/.kube/config"
+	kubeconfig := viper.GetString("plugins.kubedeploy.kubeconfig")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 
 	if err != nil {
