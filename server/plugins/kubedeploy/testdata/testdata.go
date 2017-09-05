@@ -570,24 +570,22 @@ func JobDataFail(name string, action plugins.Action) plugins.DockerDeploy {
 
 	var serviceArray []plugins.Service
 
-	for i := 0; i < 2; i++ {
-		serviceArray = append(serviceArray, plugins.Service{
-			Action:    action,
-			Name:      fmt.Sprintf("helloworld-job%d", i),
-			Command:   "bam!",
-			Listeners: []plugins.Listener{listener},
-			State:     plugins.Waiting,
-			Spec: plugins.ServiceSpec{
-				CpuRequest:                    "10m",
-				CpuLimit:                      "500m",
-				MemoryRequest:                 "1Mi",
-				MemoryLimit:                   "500Mi",
-				TerminationGracePeriodSeconds: int64(600),
-			},
-			Replicas: 1,
-			OneShot:  true,
-		})
-	}
+	serviceArray = append(serviceArray, plugins.Service{
+		Action:    action,
+		Name:      fmt.Sprintf("helloworld-job"),
+		Command:   "bam!",
+		Listeners: []plugins.Listener{listener},
+		State:     plugins.Waiting,
+		Spec: plugins.ServiceSpec{
+			CpuRequest:                    "10m",
+			CpuLimit:                      "500m",
+			MemoryRequest:                 "1Mi",
+			MemoryLimit:                   "500Mi",
+			TerminationGracePeriodSeconds: int64(600),
+		},
+		Replicas: 1,
+		OneShot:  true,
+	})
 
 	// intentionally wrong image url to test failure
 	docker := plugins.Docker{

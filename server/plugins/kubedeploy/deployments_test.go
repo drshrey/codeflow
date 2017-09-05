@@ -77,9 +77,16 @@ func (suite *TestDeployments) TestFailJob() {
 
 	suite.agent1.Events <- testdata.CreateFailJob()
 	e = suite.agent1.GetTestEvent("plugins.DockerDeploy:status", 120)
+
 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
 		assert.Equal(suite.T(), true, service.OneShot)
-		assert.Equal(suite.T(), string(plugins.Deleted), string(service.State))
+		assert.Equal(suite.T(), string(plugins.Waiting), string(service.State))
+	}
+
+	e = suite.agent1.GetTestEvent("plugins.DockerDeploy:status", 120)
+	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
+		assert.Equal(suite.T(), true, service.OneShot)
+		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
 	}
 }
 

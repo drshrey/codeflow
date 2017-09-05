@@ -161,7 +161,7 @@ func getContainerPorts(service plugins.Service) []v1.ContainerPort {
 
 func (x *KubeDeploy) doDeploy(e agent.Event) error {
 	// Codeflow will load the kube config from a file, specified by CF_PLUGINS_KUBEDEPLOY_KUBECONFIG environment variable
-	kubeconfig := viper.GetString("plugins.kubedeploy.kubeconfig")
+	kubeconfig := "/Users/shreyas/.kube/config"
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 
 	if err != nil {
@@ -463,6 +463,30 @@ func (x *KubeDeploy) doDeploy(e agent.Event) error {
 					oneShotServices[index].StateMessage = fmt.Sprintf("Error job has failed %s", oneShotServiceName)
 					x.sendDDErrorResponse(e, oneShotServices, oneShotServices[index].StateMessage)
 					return nil
+				}
+			}
+
+			// Check Job's Pod status
+			podID := job.ObjectMeta.Labels["job-name"]
+			if pods, err := clientset.Core().Pods(podID).List(meta_v1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", "app", oneShotServiceName)}); err != nil {
+				log.Printf("List Pods of service[%s] error: %v", job.Name, err)
+			} else {
+				for _, v := range pods.Items {
+					if len(v.Status.ContainerStatuses) > 0 {
+						containerStatus := v.Status.ContainerStatuses[0]
+						if containerStatus.State.Waiting != nil {
+							switch waitingReason := containerStatus.State.Waiting.Reason; waitingReason {
+							case "InvalidImageName":
+								// Job has failed
+								oneShotServices[index].State = plugins.Failed
+								oneShotServices[index].StateMessage = fmt.Sprintf("Error job has failed due to InvalidImageName: %s", oneShotServiceName)
+								x.sendDDErrorResponse(e, oneShotServices, oneShotServices[index].StateMessage)
+								return nil
+							default:
+								log.Printf("Pod is waiting because %s", waitingReason)
+							}
+						}
+					}
 				}
 			}
 
