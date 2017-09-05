@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+  "github.com/davecgh/go-spew/spew"
 )
 
 var cf *Codeflow
@@ -122,6 +123,8 @@ func (x *Codeflow) AvailableCodeflowHandlers() []CodeflowHandler {
 
 func (x *Codeflow) Start(events chan agent.Event) error {
 	var err error
+
+  spew.Dump("HELLO THERE EVENTS START IN CODEFLOW", events)
 
 	x.Events = events
 	cf = x

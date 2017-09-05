@@ -163,19 +163,19 @@ func TeardownPreviousDeploy(name string) agent.Event {
 }
 
 func CreateSuccessJob() agent.Event {
-	job := JobData("hello-world-success", plugins.Create)
+	job := JobData("job-success", plugins.Create)
 	event := agent.NewEvent(job, nil)
 	return event
 }
 
-func CreateAlreadyActiveSoFailJob() agent.Event {
-	job := JobDataAlreadyActiveSoFailJob("hello-world-fail", plugins.Create)
-	event := agent.NewEvent(deploy, nil)
+func CreateAlreadyActiveSoFailJob(serviceName string) agent.Event {
+	job := OneServiceJobData("job-already-active-so-fail", serviceName, plugins.Create)
+	event := agent.NewEvent(job, nil)
 	return event
 }
 
 func CreateFailJob() agent.Event {
-	job := JobDataFail("hello-world-fail", plugins.Create)
+	job := JobDataFail("job-fail", plugins.Create)
 	event := agent.NewEvent(job, nil)
 	return event
 }
@@ -393,6 +393,78 @@ func DeployDataRenamed(name string, action plugins.Action) plugins.DockerDeploy 
 	return kubeDeploy
 }
 
+func OneServiceJobData(name string, serviceName string, action plugins.Action) plugins.DockerDeploy {
+	project := plugins.Project{
+		Slug: name,
+	}
+
+	headFeature := plugins.Feature{
+		Message:    "jobtest1",
+		User:       "shreyas@checkr.com",
+		Hash:       "112",
+		ParentHash: "112",
+	}
+
+	tailFeature := plugins.Feature{
+		Message:    "jobtest2",
+		User:       "shreyas@checkr.com",
+		Hash:       "456",
+		ParentHash: "456",
+	}
+
+	release := plugins.Release{
+		HeadFeature: headFeature,
+		TailFeature: tailFeature,
+	}
+
+	listener := plugins.Listener{
+		Port:     80,
+		Protocol: "TCP",
+	}
+
+	var serviceArray []plugins.Service
+
+	serviceArray = append(serviceArray, plugins.Service{
+		Action:    action,
+		Name:      serviceName,
+		Command:   "sleep 10",
+		Listeners: []plugins.Listener{listener},
+		State:     plugins.Waiting,
+		Spec: plugins.ServiceSpec{
+			CpuRequest:                    "10m",
+			CpuLimit:                      "500m",
+			MemoryRequest:                 "1Mi",
+			MemoryLimit:                   "500Mi",
+			TerminationGracePeriodSeconds: int64(600),
+		},
+		Replicas: 1,
+		OneShot:  true,
+	})
+
+	docker := plugins.Docker{
+		Image: "checkr/deploy-test:latest",
+	}
+
+	kubeDeploy := plugins.DockerDeploy{
+		Action:      action,
+		Docker:      docker,
+		Environment: "testing2",
+		Project:     project,
+		Timeout:     60,
+		Release:     release,
+		Services:    serviceArray,
+		Secrets: []plugins.Secret{
+			{
+				Key:   "MY_SECRET_KEY",
+				Value: "MY_SECRET_VALUE",
+				Type:  plugins.Env,
+			},
+		},
+	}
+
+	return kubeDeploy
+}
+
 func JobData(name string, action plugins.Action) plugins.DockerDeploy {
 	project := plugins.Project{
 		Slug: name,
@@ -427,8 +499,8 @@ func JobData(name string, action plugins.Action) plugins.DockerDeploy {
 	for i := 0; i < 2; i++ {
 		serviceArray = append(serviceArray, plugins.Service{
 			Action:    action,
-			Name:      fmt.Sprintf("helloworld-job%d", i),
-			Command:   "echo hello, world!",
+			Name:      fmt.Sprintf("sleep-job%d", i),
+			Command:   "sleep 10",
 			Listeners: []plugins.Listener{listener},
 			State:     plugins.Waiting,
 			Spec: plugins.ServiceSpec{
@@ -541,10 +613,6 @@ func JobDataFail(name string, action plugins.Action) plugins.DockerDeploy {
 
 	return kubeDeploy
 }
-
-// func JobDataAlreadyActiveSoFailJob(name string, actions plugins.Action) plugins.DockerDeploy {
-
-// }
 
 func DeployData(name string, action plugins.Action) plugins.DockerDeploy {
 	project := plugins.Project{
