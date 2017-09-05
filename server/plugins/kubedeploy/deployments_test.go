@@ -7,7 +7,6 @@ import (
 	"github.com/checkr/codeflow/server/agent"
 	"github.com/checkr/codeflow/server/plugins"
 	"github.com/checkr/codeflow/server/plugins/kubedeploy/testdata"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -139,7 +138,6 @@ func (suite *TestDeployments) TestFailedDeploymentCommand() {
 	for _, service := range e.Payload.(plugins.DockerDeploy).Services {
 		// Check if service is one shot
 		if service.OneShot == true {
-			spew.Dump(service)
 			assert.Equal(suite.T(), string(plugins.Terminated), string(service.State))
 		}
 		assert.Equal(suite.T(), string(plugins.Failed), string(service.State))
