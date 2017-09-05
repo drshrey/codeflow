@@ -43,7 +43,8 @@ DOCKER_ENVS := \
 	-e NO_PROXY \
 	-e http_proxy \
 	-e https_proxy \
-	-e no_proxy
+	-e no_proxy \
+	-e VERSION
 # note: we _cannot_ add "-e DOCKER_BUILDTAGS" here because even if it's unset in the shell, that would shadow the "ENV DOCKER_BUILDTAGS" set in our Dockerfile, which is very important for our official builds
 
 # to allow `make BIND_DIR=. shell` or `make BIND_DIR= test`
@@ -110,7 +111,7 @@ dynbinary: build ## build the linux dynbinaries
 	$(DOCKER_RUN_DOCKER) hack/make.sh dynbinary
 
 build: bundles init-go-pkg-cache
-	$(warning The docker client CLI has moved to github.com/docker/cli. By default, it is built from the git sha specified in hack/dockerfile/binaries-commits. For a dev-test cycle involving the CLI, run:${\n} DOCKER_CLI_PATH=/host/path/to/cli/binary make shell ${\n} then change the cli and compile into a binary at the same location.${\n})
+	$(warning The docker client CLI has moved to github.com/docker/cli. For a dev-test cycle involving the CLI, run:${\n} DOCKER_CLI_PATH=/host/path/to/cli/binary make shell ${\n} then change the cli and compile into a binary at the same location.${\n})
 	docker build ${BUILD_APT_MIRROR} ${DOCKER_BUILD_ARGS} -t "$(DOCKER_IMAGE)" -f "$(DOCKERFILE)" .
 
 bundles:
